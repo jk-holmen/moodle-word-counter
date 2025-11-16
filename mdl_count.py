@@ -13,14 +13,14 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-OUTPUT_FILE_PATH = "./course_out.txt"
+OUTPUT_FILE_NAME = "course_out.txt"
 CLASSES_TO_STRIP = ["anh-reading"]  # don't include references
 
 
 class WordCounter:
     def __init__(self):
         args = self.get_args()
-        self.course = Course(args.input)
+        self.course = Course(args.input, args.output)
 
     def get_args(self):
         parser = argparse.ArgumentParser(
@@ -32,24 +32,41 @@ class WordCounter:
             "--input",
             type=str,
             required=True,
-            help="Path to the input backup file",
+            help="Declare a path to the input backup file",
         )
 
+        parser.add_argument(
+            "-o",
+            "--output",
+            type=str,
+            required=False,
+            help="Declare an output directory in which the extracted course text will be saved",
+        )
         return parser.parse_args()
 
     def run(self):
-        with open(OUTPUT_FILE_PATH, "w", encoding="utf-8") as file:
-            file.write(self.course.extract_content())
+        self.course.extract_content()
+
+        word_count = len(self.course.content.split())
+        print(f"Word count: {word_count}")
 
 
 class Course:
-    def __init__(self, input_path):
+    def __init__(self, input_path, output_path=None):
         self.input_path = Path(input_path)
-        self.validate_path()
+        self._validate_path(self.input_path)
 
-    def validate_path(self):
-        if not self.input_path.is_absolute():
-            raise ValueError(f"Given file path is not absolute: {self.input_path}")
+        if output_path is not None:
+            self.output_path = Path(output_path)
+            self._validate_path(self.output_path)
+        else:
+            self.output_path = None
+
+        self.content = None
+
+    def _validate_path(self, path):
+        if not path.is_absolute():
+            raise ValueError(f"Given file path is not absolute: {path}")
         # if not os.path.isfile(self.input_path):
         #    raise ValueError(f"Input backup file not found in: {self.input_path}")
         # if not os.path.splitext(self.input_path)[-1] == ".mbz":
@@ -87,7 +104,10 @@ class Course:
         content = content.replace("\u00a0", "")  # Remove non-breaking spaces
         content = re.sub(r"@@.*", "", content)  # Remove plugin annotations
 
-        return content
+        self.content = content
+
+        if self.output_path is not None:
+            self._output_content()
 
     def _extract_from_file(self, file_path, *tags):
         with open(file_path, "r", encoding="utf-8") as file:
@@ -112,6 +132,10 @@ class Course:
 
             content += html_soup.get_text() + "\n"
         return content
+
+    def _output_content(self):
+        with open(self.output_path / OUTPUT_FILE_NAME, "w", encoding="utf-8") as file:
+            file.write(self.content)
 
 
 def main():
