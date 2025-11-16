@@ -21,13 +21,13 @@ If you're using `uv`, dependencies will be handled automatically.
 ## Running the script
 
 ```sh
-uv run script.py -i /abs/path/to/backup
+uv run mwc.py -i /abs/path/to/backup
 ```
 
 Optionally, an output directory can be specified with the `-o` or `--ouput` flags:
 
 ```sh
-uv run script.py -i /abs/path/to/backup/ -o /abs/path/to/output/
+uv run mwc.py -i /abs/path/to/backup/ -o /abs/path/to/output/
 ```
 
 ### Notes
@@ -41,7 +41,7 @@ uv run script.py -i /abs/path/to/backup/ -o /abs/path/to/output/
 ## Example
 
 ```sh
-uv run script.py -i /home/me/course_backup -o /home/me/output
+uv run mwc.py -i /home/me/course_backup -o /home/me/output
 ```
 
 Output:
