@@ -37,6 +37,10 @@ class WordCounter:
 
         return parser.parse_args()
 
+    def run(self):
+        with open(OUTPUT_FILE_PATH, "w", encoding="utf-8") as file:
+            file.write(self.course.extract_content())
+
 
 class Course:
     def __init__(self, input_path):
@@ -53,17 +57,49 @@ class Course:
         #        f"File specified does not have an .mbz extension: {self.input_path}"
         #    )
 
-    def extract_content(self, file_path, *tags):
+    def extract_content(self):
+        path = self.input_path
+
+        content = ""
+
+        for _root, dirs, _files in os.walk(path / "activities"):
+            for dir_name in dirs:
+                if "page_" in dir_name:
+                    file_path = path / "activities" / dir_name / "page.xml"
+                    print(file_path)
+                    content += self._extract_from_file(
+                        file_path, "name", "intro", "content"
+                    )
+                if "book_" in dir_name:
+                    file_path = path / "activities" / dir_name / "book.xml"
+                    print(file_path)
+                    content += self._extract_from_file(
+                        file_path, "name", "title", "intro", "content"
+                    )
+
+        for _root, dirs, _files in os.walk(path / "sections"):
+            for dir_name in dirs:
+                if "section_" in dir_name:
+                    file_path = path / "sections" / dir_name / "section.xml"
+                    print(file_path)
+                    content += self._extract_from_file(file_path, "name", "summary")
+
+        content = content.replace("\u00a0", "")  # Remove non-breaking spaces
+        content = re.sub(r"@@.*", "", content)  # Remove plugin annotations
+
+        return content
+
+    def _extract_from_file(self, file_path, *tags):
         with open(file_path, "r", encoding="utf-8") as file:
             soup = BeautifulSoup(file.read(), "xml")
             content = ""
             for tag in tags:
-                content += self.extract_per_tag(soup, tag)
+                content += self._extract_per_tag(soup, tag)
             return content
 
     # For each xml tag extracted, unescape and parse the html,
     # remove divs with skipped classes, then extract only the text
-    def extract_per_tag(self, soup, tag_name):
+    def _extract_per_tag(self, soup, tag_name):
         tags = soup.find_all(tag_name)
         content = ""
         for _, tag_content in enumerate(tags):
@@ -80,38 +116,7 @@ class Course:
 
 def main():
     counter = WordCounter()
-
-    path = counter.course.input_path
-
-    content = ""
-
-    for _root, dirs, _files in os.walk(path / "activities"):
-        for dir_name in dirs:
-            if "page_" in dir_name:
-                file_path = path / "activities" / dir_name / "page.xml"
-                print(file_path)
-                content += counter.course.extract_content(
-                    file_path, "name", "intro", "content"
-                )
-            if "book_" in dir_name:
-                file_path = path / "activities" / dir_name / "book.xml"
-                print(file_path)
-                content += counter.course.extract_content(
-                    file_path, "name", "title", "intro", "content"
-                )
-
-    for _root, dirs, _files in os.walk(path / "sections"):
-        for dir_name in dirs:
-            if "section_" in dir_name:
-                file_path = path / "sections" / dir_name / "section.xml"
-                print(file_path)
-                content += counter.course.extract_content(file_path, "name", "summary")
-
-    content = content.replace("\u00a0", "")  # Remove non-breaking spaces
-    content = re.sub(r"@@.*", "", content)  # Remove plugin annotations
-
-    with open(OUTPUT_FILE_PATH, "w", encoding="utf-8") as file:
-        file.write(content)
+    counter.run()
 
 
 if __name__ == "__main__":
